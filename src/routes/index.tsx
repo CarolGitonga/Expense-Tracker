@@ -1,4 +1,3 @@
-import * as React from "react";
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { monthlySummary } from "@/db/queries/expenses";
 import CategoryDoughnut from "../components/CategoryDoughnut";
@@ -42,71 +41,68 @@ function DashboardPage() {
   const navigate = Route.useNavigate();
 
   return (
-    <div style={{ padding: 24, maxWidth: 720, margin: "0 auto" }}>
-      <div style={{ display: "flex", alignItems: "baseline", justifyContent: "space-between", gap: 12 }}>
-        <h1 style={{ margin: 0 }}>Dashboard</h1>
-        <Link to="/expenses" search={{ month }}>
-          View all expenses →
+    <div>
+      <div className="flex items-baseline justify-between gap-3">
+        <h1 className="text-2xl font-bold tracking-tight">Dashboard</h1>
+        <Link
+          to="/expenses"
+          search={{ month }}
+          className="text-sm text-indigo-600 hover:text-indigo-800 transition-colors"
+        >
+          View all expenses &rarr;
         </Link>
       </div>
 
       {/* Month picker */}
-      <div style={{ marginTop: 16 }}>
-        <label style={{ display: "grid", gap: 6, maxWidth: 200 }}>
-          <span>Month</span>
+      <div className="mt-5">
+        <label className="block">
+          <span className="text-xs font-medium text-gray-500 uppercase tracking-wide">Month</span>
           <input
             type="month"
             value={month}
             onChange={(e) => navigate({ search: { month: e.target.value } })}
+            className="mt-1 block w-48 rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm shadow-sm focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 outline-none"
           />
         </label>
       </div>
 
       {/* Total spending card */}
-      <div
-        style={{
-          marginTop: 20,
-          padding: 20,
-          border: "1px solid #ddd",
-          borderRadius: 12,
-          background: "#fafafa",
-        }}
-      >
-        <div style={{ fontSize: 14, color: "#666" }}>Total spending</div>
-        <div style={{ fontSize: 28, fontWeight: 700, marginTop: 4 }}>
+      <div className="mt-6 rounded-xl border border-gray-200 bg-white p-6 shadow-sm">
+        <div className="text-sm text-gray-500">Total spending</div>
+        <div className="mt-1 text-3xl font-bold tracking-tight">
           {formatKes(summary.total)}
         </div>
       </div>
 
       {/* Category breakdown */}
-      <div style={{ marginTop: 24 }}>
-        <h2 style={{ fontSize: 18, marginBottom: 12 }}>By category</h2>
+      <div className="mt-8">
+        <h2 className="text-lg font-semibold">By category</h2>
 
         {summary.byCategory.length === 0 ? (
-          <p style={{ color: "#888" }}>
+          <p className="mt-3 text-gray-500">
             No expenses recorded for this month.{" "}
-            <Link to="/expenses/new" search={{ month }}>
-              Add one →
+            <Link
+              to="/expenses/new"
+              search={{ month }}
+              className="text-indigo-600 hover:text-indigo-800 transition-colors"
+            >
+              Add one &rarr;
             </Link>
           </p>
         ) : (
           <>
-            <CategoryDoughnut data={summary.byCategory} />
+            <div className="mt-4">
+              <CategoryDoughnut data={summary.byCategory} />
+            </div>
 
-            {/* Category list with amounts */}
-            <ul style={{ listStyle: "none", padding: 0, marginTop: 16 }}>
+            <ul className="mt-4 divide-y divide-gray-100">
               {summary.byCategory.map((row) => (
                 <li
                   key={row.category}
-                  style={{
-                    display: "flex",
-                    justifyContent: "space-between",
-                    padding: "8px 0",
-                    borderBottom: "1px solid #eee",
-                  }}
+                  className="flex items-center justify-between py-3"
                 >
-                  <span>{row.category}</span>
-                  <span style={{ fontWeight: 600 }}>{formatKes(row.total)}</span>
+                  <span className="text-sm text-gray-700">{row.category}</span>
+                  <span className="text-sm font-semibold">{formatKes(row.total)}</span>
                 </li>
               ))}
             </ul>

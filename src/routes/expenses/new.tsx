@@ -3,9 +3,16 @@ import { createFileRoute, Link } from "@tanstack/react-router";
 import { createServerFn } from "@tanstack/react-start";
 import { getCategories, createExpense } from "@/db/queries/expenses";
 
-const createExpenseFn = createServerFn(
-  "POST",
-  async (input: { amountKes: string; categoryId: number; expenseDate: string; note?: string }) => {
+type ExpenseInput = {
+  amountKes: string;
+  categoryId: number;
+  expenseDate: string;
+  note?: string;
+};
+
+const createExpenseFn = createServerFn({ method: "POST" })
+  .inputValidator((d: ExpenseInput) => d)
+  .handler(async ({ data: input }) => {
     const amountNumber = Number(input.amountKes);
     if (!Number.isFinite(amountNumber) || amountNumber <= 0) {
       throw new Error("Amount must be a positive number");
@@ -25,8 +32,7 @@ const createExpenseFn = createServerFn(
     });
 
     return { ok: true };
-  },
-);
+  });
 
 export const Route = createFileRoute("/expenses/new")({
   validateSearch: (search: Record<string, unknown>) => {
@@ -65,29 +71,35 @@ function NewExpensePage() {
   const [error, setError] = React.useState<string | null>(null);
   const [busy, setBusy] = React.useState(false);
 
+  const inputClass =
+    "block w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm shadow-sm focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 outline-none";
+
   return (
-    <div style={{ padding: 24, maxWidth: 720, margin: "0 auto" }}>
-      <div style={{ display: "flex", alignItems: "baseline", justifyContent: "space-between", gap: 12 }}>
-        <h1 style={{ margin: 0 }}>Add expense</h1>
-        <Link to="/expenses" search={{ month: month ?? undefined, categoryId: undefined }}>
-          ← Back
+    <div>
+      <div className="flex items-baseline justify-between gap-3">
+        <h1 className="text-2xl font-bold tracking-tight">Add expense</h1>
+        <Link
+          to="/expenses"
+          search={{ month: month ?? undefined, categoryId: undefined }}
+          className="text-sm text-indigo-600 hover:text-indigo-800 transition-colors"
+        >
+          &larr; Back
         </Link>
       </div>
 
       {categories.length === 0 ? (
-        <div style={{ marginTop: 16 }}>
-          No categories found. Add some categories first (we can add a `/categories` page next).
-        </div>
+        <p className="mt-4 text-gray-500">
+          No categories found. Add some categories first.
+        </p>
       ) : (
         <form
-          style={{ marginTop: 16, display: "grid", gap: 12 }}
+          className="mt-6 grid gap-5"
           onSubmit={async (e) => {
             e.preventDefault();
             setError(null);
             setBusy(true);
             try {
-              await createExpenseFn({ amountKes, categoryId, expenseDate, note });
-              // Go back to list (keep month filter if present)
+              await createExpenseFn({ data: { amountKes, categoryId, expenseDate, note } });
               await navigate({ to: "/expenses", search: { month: month ?? expenseDate.slice(0, 7), categoryId: undefined } });
             } catch (err: any) {
               setError(err?.message ?? "Failed to create expense");
@@ -96,14 +108,23 @@ function NewExpensePage() {
             }
           }}
         >
-          <label style={{ display: "grid", gap: 6 }}>
-            <span>Date</span>
-            <input type="date" value={expenseDate} onChange={(e) => setExpenseDate(e.target.value)} />
+          <label className="block">
+            <span className="text-xs font-medium text-gray-500 uppercase tracking-wide">Date</span>
+            <input
+              type="date"
+              value={expenseDate}
+              onChange={(e) => setExpenseDate(e.target.value)}
+              className={`mt-1 ${inputClass}`}
+            />
           </label>
 
-          <label style={{ display: "grid", gap: 6 }}>
-            <span>Category</span>
-            <select value={categoryId} onChange={(e) => setCategoryId(Number(e.target.value))}>
+          <label className="block">
+            <span className="text-xs font-medium text-gray-500 uppercase tracking-wide">Category</span>
+            <select
+              value={categoryId}
+              onChange={(e) => setCategoryId(Number(e.target.value))}
+              className={`mt-1 ${inputClass}`}
+            >
               {categories.map((c) => (
                 <option key={c.id} value={c.id}>
                   {c.name}
@@ -112,24 +133,38 @@ function NewExpensePage() {
             </select>
           </label>
 
-          <label style={{ display: "grid", gap: 6 }}>
-            <span>Amount (KES)</span>
+          <label className="block">
+            <span className="text-xs font-medium text-gray-500 uppercase tracking-wide">Amount (KES)</span>
             <input
               inputMode="decimal"
               placeholder="e.g. 250"
               value={amountKes}
               onChange={(e) => setAmountKes(e.target.value)}
+              className={`mt-1 ${inputClass}`}
             />
           </label>
 
-          <label style={{ display: "grid", gap: 6 }}>
-            <span>Note (optional)</span>
-            <input placeholder="e.g. Lunch, Uber..." value={note} onChange={(e) => setNote(e.target.value)} />
+          <label className="block">
+            <span className="text-xs font-medium text-gray-500 uppercase tracking-wide">Note (optional)</span>
+            <input
+              placeholder="e.g. Lunch, Uber..."
+              value={note}
+              onChange={(e) => setNote(e.target.value)}
+              className={`mt-1 ${inputClass}`}
+            />
           </label>
 
-          {error ? <div style={{ color: "crimson" }}>{error}</div> : null}
+          {error && (
+            <div className="rounded-lg bg-red-50 border border-red-200 px-4 py-3 text-sm text-red-700">
+              {error}
+            </div>
+          )}
 
-          <button type="submit" disabled={busy}>
+          <button
+            type="submit"
+            disabled={busy}
+            className="mt-1 rounded-lg bg-indigo-600 px-4 py-2.5 text-sm font-medium text-white shadow-sm hover:bg-indigo-700 disabled:opacity-50 transition-colors cursor-pointer"
+          >
             {busy ? "Saving..." : "Save expense"}
           </button>
         </form>
@@ -137,4 +172,3 @@ function NewExpensePage() {
     </div>
   );
 }
- 

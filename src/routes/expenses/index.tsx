@@ -15,19 +15,20 @@ function yyyyMmNow() {
   return `${y}-${m}`;
 }
 
-function formatKesFromCents(cents: number) {
-  const kes = cents / 100;
+function formatKes(cents: number) {
   return new Intl.NumberFormat("en-KE", {
     style: "currency",
     currency: "KES",
     maximumFractionDigits: 2,
-  }).format(kes);
+  }).format(cents / 100);
 }
 
-const deleteExpenseFn = createServerFn("POST", async (id: number) => {
-  await deleteExpense(id);
-  return { ok: true };
-});
+const deleteExpenseFn = createServerFn({ method: "POST" })
+  .inputValidator((d: number) => d)
+  .handler(async ({ data: id }) => {
+    await deleteExpense(id);
+    return { ok: true };
+  });
 
 export const Route = createFileRoute("/expenses/")({
   validateSearch: (search: Record<string, unknown>) => {
@@ -68,27 +69,36 @@ function ExpensesPage() {
 
   const [busyId, setBusyId] = React.useState<number | null>(null);
 
+  const inputClass =
+    "block w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm shadow-sm focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 outline-none";
+
   return (
-    <div style={{ padding: 24, maxWidth: 980, margin: "0 auto" }}>
-      <div style={{ display: "flex", alignItems: "baseline", justifyContent: "space-between", gap: 12 }}>
-        <h1 style={{ margin: 0 }}>Expenses</h1>
-        <Link to="/expenses/new" search={{ month }}>
-          Add expense →
+    <div>
+      <div className="flex items-baseline justify-between gap-3">
+        <h1 className="text-2xl font-bold tracking-tight">Expenses</h1>
+        <Link
+          to="/expenses/new"
+          search={{ month }}
+          className="inline-flex items-center gap-1 rounded-lg bg-indigo-600 px-4 py-2 text-sm font-medium text-white shadow-sm hover:bg-indigo-700 transition-colors"
+        >
+          Add expense
         </Link>
       </div>
 
-      <div style={{ display: "flex", gap: 12, marginTop: 16, flexWrap: "wrap" }}>
-        <label style={{ display: "grid", gap: 6 }}>
-          <span>Month</span>
+      {/* Filters */}
+      <div className="mt-5 flex flex-wrap gap-4">
+        <label className="block">
+          <span className="text-xs font-medium text-gray-500 uppercase tracking-wide">Month</span>
           <input
             type="month"
             value={month}
             onChange={(e) => navigate({ search: { month: e.target.value, categoryId } })}
+            className={`mt-1 w-48 ${inputClass}`}
           />
         </label>
 
-        <label style={{ display: "grid", gap: 6 }}>
-          <span>Category</span>
+        <label className="block">
+          <span className="text-xs font-medium text-gray-500 uppercase tracking-wide">Category</span>
           <select
             value={categoryId ?? ""}
             onChange={(e) =>
@@ -99,6 +109,7 @@ function ExpensesPage() {
                 },
               })
             }
+            className={`mt-1 w-44 ${inputClass}`}
           >
             <option value="">All</option>
             {categories.map((c) => (
@@ -110,59 +121,67 @@ function ExpensesPage() {
         </label>
       </div>
 
-      <div style={{ marginTop: 16, padding: 12, border: "1px solid #ddd", borderRadius: 10 }}>
-        <div style={{ fontWeight: 600 }}>Month total</div>
-        <div style={{ fontSize: 22, marginTop: 6 }}>{formatKesFromCents(summary.total)}</div>
+      {/* Month total */}
+      <div className="mt-6 rounded-xl border border-gray-200 bg-white p-5 shadow-sm">
+        <div className="text-sm text-gray-500">Month total</div>
+        <div className="mt-1 text-2xl font-bold tracking-tight">{formatKes(summary.total)}</div>
       </div>
 
-      <div style={{ marginTop: 16 }}>
-        <h3 style={{ marginBottom: 8 }}>By category</h3>
+      {/* By category */}
+      <div className="mt-6">
+        <h3 className="text-sm font-semibold text-gray-500 uppercase tracking-wide">By category</h3>
         {summary.byCategory.length === 0 ? (
-          <div style={{ opacity: 0.7 }}>No expenses yet for this month.</div>
+          <p className="mt-2 text-sm text-gray-400">No expenses yet for this month.</p>
         ) : (
-          <ul style={{ margin: 0, paddingLeft: 18 }}>
+          <ul className="mt-2 divide-y divide-gray-100">
             {summary.byCategory.map((row) => (
-              <li key={row.category}>
-                {row.category}: {formatKesFromCents(row.total)}
+              <li key={row.category} className="flex items-center justify-between py-2">
+                <span className="text-sm text-gray-700">{row.category}</span>
+                <span className="text-sm font-semibold">{formatKes(row.total)}</span>
               </li>
             ))}
           </ul>
         )}
       </div>
 
-      <div style={{ marginTop: 24 }}>
-        <h3 style={{ marginBottom: 8 }}>Entries</h3>
+      {/* Entries table */}
+      <div className="mt-8">
+        <h3 className="text-sm font-semibold text-gray-500 uppercase tracking-wide">Entries</h3>
 
         {expenses.length === 0 ? (
-          <div style={{ opacity: 0.7 }}>No expenses found.</div>
+          <p className="mt-2 text-sm text-gray-400">No expenses found.</p>
         ) : (
-          <div style={{ overflowX: "auto" }}>
-            <table style={{ width: "100%", borderCollapse: "collapse" }}>
+          <div className="mt-3 overflow-x-auto rounded-xl border border-gray-200 bg-white shadow-sm">
+            <table className="w-full text-sm">
               <thead>
-                <tr>
-                  <th style={th}>Date</th>
-                  <th style={th}>Category</th>
-                  <th style={th}>Note</th>
-                  <th style={{ ...th, textAlign: "right" }}>Amount</th>
-                  <th style={th}></th>
+                <tr className="border-b border-gray-200 bg-gray-50">
+                  <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wide">Date</th>
+                  <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wide">Category</th>
+                  <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wide">Note</th>
+                  <th className="px-4 py-3 text-right text-xs font-semibold text-gray-500 uppercase tracking-wide">Amount</th>
+                  <th className="px-4 py-3 w-20"></th>
                 </tr>
               </thead>
-              <tbody>
+              <tbody className="divide-y divide-gray-100">
                 {expenses.map((x) => (
-                  <tr key={x.id}>
-                    <td style={td}>{String(x.expenseDate)}</td>
-                    <td style={td}>{x.categoryName}</td>
-                    <td style={td}>{x.note ?? ""}</td>
-                    <td style={{ ...td, textAlign: "right" }}>{formatKesFromCents(x.amount)}</td>
-                    <td style={td}>
+                  <tr key={x.id} className="hover:bg-gray-50 transition-colors">
+                    <td className="px-4 py-3 text-gray-600 whitespace-nowrap">{String(x.expenseDate)}</td>
+                    <td className="px-4 py-3">
+                      <span className="inline-flex items-center rounded-full bg-gray-100 px-2.5 py-0.5 text-xs font-medium text-gray-700">
+                        {x.categoryName}
+                      </span>
+                    </td>
+                    <td className="px-4 py-3 text-gray-500">{x.note ?? ""}</td>
+                    <td className="px-4 py-3 text-right font-semibold whitespace-nowrap">{formatKes(x.amount)}</td>
+                    <td className="px-4 py-3 text-right">
                       <button
                         disabled={busyId === x.id}
+                        className="text-xs text-red-500 hover:text-red-700 font-medium disabled:opacity-50 transition-colors cursor-pointer"
                         onClick={async () => {
                           setBusyId(x.id);
                           try {
-                            await deleteExpenseFn(x.id);
+                            await deleteExpenseFn({ data: x.id });
                             await navigate({ search: { month, categoryId }, replace: true });
-                            // loader will re-run on navigation
                           } finally {
                             setBusyId(null);
                           }
@@ -181,16 +200,3 @@ function ExpensesPage() {
     </div>
   );
 }
-
-const th: React.CSSProperties = {
-  borderBottom: "1px solid #ddd",
-  textAlign: "left",
-  padding: "10px 8px",
-  fontWeight: 600,
-};
-
-const td: React.CSSProperties = {
-  borderBottom: "1px solid #eee",
-  padding: "10px 8px",
-  verticalAlign: "top",
-};

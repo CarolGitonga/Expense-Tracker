@@ -1,17 +1,21 @@
 import { Link } from '@tanstack/react-router'
 
-import './Header.css'
-
 export default function Header() {
   return (
-    <header className="header">
-      <nav className="nav">
-        <div className="nav-item">
-          <Link to="/">Dashboard</Link>
-        </div>
-        <div className="nav-item">
-          <Link to="/expenses">Expenses</Link>
-        </div>
+    <header className="border-b border-gray-200 bg-white">
+      <nav className="max-w-4xl mx-auto px-4 flex items-center gap-6 h-14">
+        <Link
+          to="/"
+          className="text-sm font-semibold text-gray-600 hover:text-gray-900 transition-colors [&.active]:text-indigo-600"
+        >
+          Dashboard
+        </Link>
+        <Link
+          to="/expenses"
+          className="text-sm font-semibold text-gray-600 hover:text-gray-900 transition-colors [&.active]:text-indigo-600"
+        >
+          Expenses
+        </Link>
       </nav>
     </header>
   )

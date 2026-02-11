@@ -61,7 +61,7 @@ export default function CategoryDoughnut({ data }: CategoryDoughnutProps) {
   };
 
   return (
-    <div style={{ position: "relative", height: 300, maxWidth: 400 }}>
+    <div className="relative h-72 max-w-sm">
       <Doughnut data={chartData} options={options} />
     </div>
   );
