@@ -9,6 +9,12 @@ function yyyyMmNow() {
   return `${y}-${m}`;
 }
 
+function prevMonth(month: string) {
+  const [y, m] = month.split("-").map(Number);
+  if (m === 1) return `${y - 1}-12`;
+  return `${y}-${String(m - 1).padStart(2, "0")}`;
+}
+
 function formatKes(cents: number) {
   return new Intl.NumberFormat("en-KE", {
     style: "currency",
@@ -18,6 +24,8 @@ function formatKes(cents: number) {
 }
 
 export const Route = createFileRoute("/")({
+  staleTime: 0,
+
   validateSearch: (search: Record<string, unknown>) => {
     const month =
       typeof search.month === "string" && /^\d{4}-\d{2}$/.test(search.month)
@@ -29,16 +37,27 @@ export const Route = createFileRoute("/")({
   loader: async ({ location }) => {
     const searchParams = new URLSearchParams(location.search);
     const month = searchParams.get("month") ?? yyyyMmNow();
-    const summary = await monthlySummary(month);
-    return { summary, month };
+    const prev = prevMonth(month);
+
+    const [summary, prevSummary] = await Promise.all([
+      monthlySummary(month),
+      monthlySummary(prev),
+    ]);
+
+    return { summary, prevTotal: prevSummary.total, month };
   },
 
   component: DashboardPage,
 });
 
 function DashboardPage() {
-  const { summary, month } = Route.useLoaderData();
+  const { summary, prevTotal, month } = Route.useLoaderData();
   const navigate = Route.useNavigate();
+
+  const pctChange =
+    prevTotal > 0
+      ? Math.round(((summary.total - prevTotal) / prevTotal) * 100)
+      : null;
 
   return (
     <div>
@@ -72,6 +91,30 @@ function DashboardPage() {
         <div className="mt-1 text-3xl font-bold tracking-tight">
           {formatKes(summary.total)}
         </div>
+
+        {pctChange !== null && (
+          <div className="mt-2 flex items-center gap-1.5 text-sm">
+            <span
+              className={
+                pctChange > 0
+                  ? "text-red-600"
+                  : pctChange < 0
+                    ? "text-green-600"
+                    : "text-gray-500"
+              }
+            >
+              {pctChange > 0 ? "\u2191" : pctChange < 0 ? "\u2193" : "\u2192"}{" "}
+              {Math.abs(pctChange)}% from last month
+            </span>
+            <span className="text-gray-400">({formatKes(prevTotal)})</span>
+          </div>
+        )}
+
+        {pctChange === null && summary.total > 0 && (
+          <div className="mt-2 text-sm text-gray-400">
+            No data for previous month to compare
+          </div>
+        )}
       </div>
 
       {/* Category breakdown */}

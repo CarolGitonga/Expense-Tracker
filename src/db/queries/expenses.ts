@@ -75,6 +75,42 @@ export async function createExpense(input: {
   });
 }
 
+export async function getExpenseById(id: number) {
+  const rows = await db
+    .select({
+      id: expenses.id,
+      amount: expenses.amount,
+      expenseDate: expenses.expenseDate,
+      note: expenses.note,
+      categoryId: expenses.categoryId,
+    })
+    .from(expenses)
+    .where(eq(expenses.id, id))
+    .limit(1);
+
+  return rows[0] ?? null;
+}
+
+export async function updateExpense(
+  id: number,
+  input: {
+    amount: number;
+    categoryId: number;
+    expenseDate: string;
+    note?: string | null;
+  },
+) {
+  await db
+    .update(expenses)
+    .set({
+      amount: input.amount,
+      categoryId: input.categoryId,
+      expenseDate: input.expenseDate,
+      note: input.note ?? null,
+    })
+    .where(eq(expenses.id, id));
+}
+
 export async function deleteExpense(id: number) {
   await db.delete(expenses).where(eq(expenses.id, id));
 }

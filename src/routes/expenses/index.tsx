@@ -31,6 +31,8 @@ const deleteExpenseFn = createServerFn({ method: "POST" })
   });
 
 export const Route = createFileRoute("/expenses/")({
+  staleTime: 0,
+
   validateSearch: (search: Record<string, unknown>) => {
     const month =
       typeof search.month === "string" && /^\d{4}-\d{2}$/.test(search.month)
@@ -159,7 +161,7 @@ function ExpensesPage() {
                   <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wide">Category</th>
                   <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wide">Note</th>
                   <th className="px-4 py-3 text-right text-xs font-semibold text-gray-500 uppercase tracking-wide">Amount</th>
-                  <th className="px-4 py-3 w-20"></th>
+                  <th className="px-4 py-3 w-28"></th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-100">
@@ -174,21 +176,30 @@ function ExpensesPage() {
                     <td className="px-4 py-3 text-gray-500">{x.note ?? ""}</td>
                     <td className="px-4 py-3 text-right font-semibold whitespace-nowrap">{formatKes(x.amount)}</td>
                     <td className="px-4 py-3 text-right">
-                      <button
-                        disabled={busyId === x.id}
-                        className="text-xs text-red-500 hover:text-red-700 font-medium disabled:opacity-50 transition-colors cursor-pointer"
-                        onClick={async () => {
-                          setBusyId(x.id);
-                          try {
-                            await deleteExpenseFn({ data: x.id });
-                            await navigate({ search: { month, categoryId }, replace: true });
-                          } finally {
-                            setBusyId(null);
-                          }
-                        }}
-                      >
-                        {busyId === x.id ? "Deleting..." : "Delete"}
-                      </button>
+                      <div className="flex items-center justify-end gap-3">
+                        <Link
+                          to="/expenses/$id/edit"
+                          params={{ id: String(x.id) }}
+                          className="text-xs text-indigo-600 hover:text-indigo-800 font-medium transition-colors"
+                        >
+                          Edit
+                        </Link>
+                        <button
+                          disabled={busyId === x.id}
+                          className="text-xs text-red-500 hover:text-red-700 font-medium disabled:opacity-50 transition-colors cursor-pointer"
+                          onClick={async () => {
+                            setBusyId(x.id);
+                            try {
+                              await deleteExpenseFn({ data: x.id });
+                              await navigate({ search: { month, categoryId }, replace: true });
+                            } finally {
+                              setBusyId(null);
+                            }
+                          }}
+                        >
+                          {busyId === x.id ? "Deleting..." : "Delete"}
+                        </button>
+                      </div>
                     </td>
                   </tr>
                 ))}
