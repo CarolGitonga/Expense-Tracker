@@ -1,7 +1,6 @@
 import * as React from "react";
-import { createFileRoute, Link } from "@tanstack/react-router";
+import { createFileRoute, Link, useRouter } from "@tanstack/react-router";
 import { createServerFn } from "@tanstack/react-start";
-import { getCategories, getExpenseById, updateExpense } from "@/db/queries/expenses";
 
 type UpdateInput = {
   id: number;
@@ -11,9 +10,22 @@ type UpdateInput = {
   note?: string;
 };
 
+const loadEditPageFn = createServerFn({ method: "GET" })
+  .inputValidator((d: { id: number }) => d)
+  .handler(async ({ data }) => {
+    const { getExpenseById, getCategories } = await import("@/db/queries/expenses");
+    const [expense, categories] = await Promise.all([
+      getExpenseById(data.id),
+      getCategories(),
+    ]);
+    return { expense, categories };
+  });
+
 const updateExpenseFn = createServerFn({ method: "POST" })
   .inputValidator((d: UpdateInput) => d)
   .handler(async ({ data: input }) => {
+    const { updateExpense } = await import("@/db/queries/expenses");
+
     const amountNumber = Number(input.amountKes);
     if (!Number.isFinite(amountNumber) || amountNumber <= 0) {
       throw new Error("Amount must be a positive number");
@@ -40,16 +52,13 @@ export const Route = createFileRoute("/expenses/$id/edit")({
 
   loader: async ({ params }) => {
     const id = Number(params.id);
-    const [expense, categories] = await Promise.all([
-      getExpenseById(id),
-      getCategories(),
-    ]);
+    const data = await loadEditPageFn({ data: { id } });
 
-    if (!expense) {
+    if (!data.expense) {
       throw new Error("Expense not found");
     }
 
-    return { expense, categories };
+    return { expense: data.expense, categories: data.categories };
   },
 
   component: EditExpensePage,
@@ -57,6 +66,7 @@ export const Route = createFileRoute("/expenses/$id/edit")({
 
 function EditExpensePage() {
   const { expense, categories } = Route.useLoaderData();
+  const router = useRouter();
   const navigate = Route.useNavigate();
 
   const [expenseDate, setExpenseDate] = React.useState(String(expense.expenseDate));
@@ -92,6 +102,7 @@ function EditExpensePage() {
           setBusy(true);
           try {
             await updateExpenseFn({ data: { id: expense.id, amountKes, categoryId, expenseDate, note } });
+            await router.invalidate();
             await navigate({ to: "/expenses", search: { month: monthFromDate, categoryId: undefined } });
           } catch (err: any) {
             setError(err?.message ?? "Failed to update expense");
