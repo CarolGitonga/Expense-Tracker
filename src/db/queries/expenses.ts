@@ -61,6 +61,46 @@ export async function monthlySummary(month: string) {
   return { total: totalRow[0]?.total ?? 0, byCategory };
 }
 
+export async function weeklySummary(weekStart: string) {
+  const d = new Date(weekStart);
+  d.setDate(d.getDate() + 7);
+  const weekEnd = d.toISOString().split("T")[0]!;
+
+  const totalRow = await db
+    .select({ total: sql<number>`coalesce(sum(${expenses.amount}), 0)` })
+    .from(expenses)
+    .where(and(gte(expenses.expenseDate, weekStart), lt(expenses.expenseDate, weekEnd)));
+
+  const byCategory = await db
+    .select({
+      category: categories.name,
+      total: sql<number>`coalesce(sum(${expenses.amount}), 0)`,
+    })
+    .from(expenses)
+    .innerJoin(categories, eq(expenses.categoryId, categories.id))
+    .where(and(gte(expenses.expenseDate, weekStart), lt(expenses.expenseDate, weekEnd)))
+    .groupBy(categories.name)
+    .orderBy(sql`2 desc`);
+
+  return { total: totalRow[0]?.total ?? 0, byCategory };
+}
+
+export async function dailyBreakdown(weekStart: string) {
+  const d = new Date(weekStart);
+  d.setDate(d.getDate() + 7);
+  const weekEnd = d.toISOString().split("T")[0]!;
+
+  return db
+    .select({
+      day: expenses.expenseDate,
+      total: sql<number>`coalesce(sum(${expenses.amount}), 0)`,
+    })
+    .from(expenses)
+    .where(and(gte(expenses.expenseDate, weekStart), lt(expenses.expenseDate, weekEnd)))
+    .groupBy(expenses.expenseDate)
+    .orderBy(expenses.expenseDate);
+}
+
 export async function createExpense(input: {
   amount: number; // cents
   categoryId: number;
