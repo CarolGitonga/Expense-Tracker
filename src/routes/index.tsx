@@ -1,6 +1,7 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { createServerFn } from "@tanstack/react-start";
 import CategoryDoughnut from "../components/CategoryDoughnut";
+import CategoryIcon from "../components/CategoryIcon";
 import DailyBarChart from "../components/DailyBarChart";
 
 /* ── helpers ── */
@@ -248,7 +249,10 @@ function DashboardPage() {
               key={row.category}
               className="flex items-center justify-between py-3"
             >
-              <span className="text-sm text-gray-700">{row.category}</span>
+              <span className="inline-flex items-center gap-2.5">
+                <CategoryIcon category={row.category} />
+                <span className="text-sm text-gray-700">{row.category}</span>
+              </span>
               <span className="text-sm font-semibold">
                 {formatKes(row.total)}
               </span>

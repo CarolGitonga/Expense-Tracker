@@ -1,6 +1,7 @@
 import * as React from "react";
 import { createFileRoute, Link, useRouter } from "@tanstack/react-router";
 import { createServerFn } from "@tanstack/react-start";
+import CategoryIcon from "../../components/CategoryIcon";
 
 function yyyyMmNow() {
   const d = new Date();
@@ -141,7 +142,10 @@ function ExpensesPage() {
           <ul className="mt-2 divide-y divide-gray-100">
             {summary.byCategory.map((row) => (
               <li key={row.category} className="flex items-center justify-between py-2">
-                <span className="text-sm text-gray-700">{row.category}</span>
+                <span className="inline-flex items-center gap-2">
+                  <CategoryIcon category={row.category} size="sm" />
+                  <span className="text-sm text-gray-700">{row.category}</span>
+                </span>
                 <span className="text-sm font-semibold">{formatKes(row.total)}</span>
               </li>
             ))}
@@ -172,8 +176,9 @@ function ExpensesPage() {
                   <tr key={x.id} className="hover:bg-gray-50 transition-colors">
                     <td className="px-4 py-3 text-gray-600 whitespace-nowrap">{String(x.expenseDate)}</td>
                     <td className="px-4 py-3">
-                      <span className="inline-flex items-center rounded-full bg-gray-100 px-2.5 py-0.5 text-xs font-medium text-gray-700">
-                        {x.categoryName}
+                      <span className="inline-flex items-center gap-2">
+                        <CategoryIcon category={x.categoryName} size="sm" />
+                        <span className="text-sm text-gray-700">{x.categoryName}</span>
                       </span>
                     </td>
                     <td className="px-4 py-3 text-gray-500">{x.note ?? ""}</td>
