@@ -1,5 +1,5 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { monthlySummary } from "@/db/queries/expenses";
+import { createServerFn } from "@tanstack/react-start";
 import CategoryDoughnut from "../components/CategoryDoughnut";
 
 function yyyyMmNow() {
@@ -23,6 +23,18 @@ function formatKes(cents: number) {
   }).format(cents / 100);
 }
 
+const loadDashboardFn = createServerFn({ method: "GET" })
+  .inputValidator((d: { month: string }) => d)
+  .handler(async ({ data }) => {
+    const { monthlySummary } = await import("@/db/queries/expenses");
+    const prev = prevMonth(data.month);
+    const [summary, prevSummary] = await Promise.all([
+      monthlySummary(data.month),
+      monthlySummary(prev),
+    ]);
+    return { summary, prevTotal: prevSummary.total };
+  });
+
 export const Route = createFileRoute("/")({
   staleTime: 0,
 
@@ -37,14 +49,9 @@ export const Route = createFileRoute("/")({
   loader: async ({ location }) => {
     const searchParams = new URLSearchParams(location.search);
     const month = searchParams.get("month") ?? yyyyMmNow();
-    const prev = prevMonth(month);
 
-    const [summary, prevSummary] = await Promise.all([
-      monthlySummary(month),
-      monthlySummary(prev),
-    ]);
-
-    return { summary, prevTotal: prevSummary.total, month };
+    const data = await loadDashboardFn({ data: { month } });
+    return { ...data, month };
   },
 
   component: DashboardPage,
@@ -79,7 +86,7 @@ function DashboardPage() {
           <input
             type="month"
             value={month}
-            onChange={(e) => navigate({ search: { month: e.target.value } })}
+            onChange={(e) => navigate({ search: { month: e.target.value } } as any)}
             className="mt-1 block w-48 rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm shadow-sm focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 outline-none"
           />
         </label>
