@@ -1,7 +1,6 @@
 import * as React from "react";
-import { createFileRoute, Link } from "@tanstack/react-router";
+import { createFileRoute, Link, useRouter } from "@tanstack/react-router";
 import { createServerFn } from "@tanstack/react-start";
-import { getCategories, createExpense } from "@/db/queries/expenses";
 
 type ExpenseInput = {
   amountKes: string;
@@ -10,9 +9,16 @@ type ExpenseInput = {
   note?: string;
 };
 
+const getCategoriesFn = createServerFn({ method: "GET" }).handler(async () => {
+  const { getCategories } = await import("@/db/queries/expenses");
+  return await getCategories();
+});
+
 const createExpenseFn = createServerFn({ method: "POST" })
   .inputValidator((d: ExpenseInput) => d)
   .handler(async ({ data: input }) => {
+    const { createExpense } = await import("@/db/queries/expenses");
+
     const amountNumber = Number(input.amountKes);
     if (!Number.isFinite(amountNumber) || amountNumber <= 0) {
       throw new Error("Amount must be a positive number");
@@ -44,7 +50,7 @@ export const Route = createFileRoute("/expenses/new")({
   },
 
   loader: async () => {
-    const categories = await getCategories();
+    const categories = await getCategoriesFn();
     return { categories };
   },
 
@@ -62,6 +68,7 @@ function todayYyyyMmDd() {
 function NewExpensePage() {
   const { categories } = Route.useLoaderData();
   const { month } = Route.useSearch();
+  const router = useRouter();
   const navigate = Route.useNavigate();
 
   const [expenseDate, setExpenseDate] = React.useState(todayYyyyMmDd());
@@ -100,6 +107,7 @@ function NewExpensePage() {
             setBusy(true);
             try {
               await createExpenseFn({ data: { amountKes, categoryId, expenseDate, note } });
+              await router.invalidate();
               await navigate({ to: "/expenses", search: { month: month ?? expenseDate.slice(0, 7), categoryId: undefined } });
             } catch (err: any) {
               setError(err?.message ?? "Failed to create expense");
