@@ -1,12 +1,6 @@
 import * as React from "react";
-import { createFileRoute, Link } from "@tanstack/react-router";
+import { createFileRoute, Link, useRouter } from "@tanstack/react-router";
 import { createServerFn } from "@tanstack/react-start";
-import {
-  deleteExpense,
-  getCategories,
-  listExpenses,
-  monthlySummary,
-} from "@/db/queries/expenses";
 
 function yyyyMmNow() {
   const d = new Date();
@@ -23,9 +17,22 @@ function formatKes(cents: number) {
   }).format(cents / 100);
 }
 
+const loadExpensesPageFn = createServerFn({ method: "GET" })
+  .inputValidator((d: { month: string; categoryId?: number }) => d)
+  .handler(async ({ data }) => {
+    const { getCategories, listExpenses, monthlySummary } = await import("@/db/queries/expenses");
+    const [categories, expenses, summary] = await Promise.all([
+      getCategories(),
+      listExpenses({ month: data.month, categoryId: data.categoryId }),
+      monthlySummary(data.month),
+    ]);
+    return { categories, expenses, summary };
+  });
+
 const deleteExpenseFn = createServerFn({ method: "POST" })
   .inputValidator((d: number) => d)
   .handler(async ({ data: id }) => {
+    const { deleteExpense } = await import("@/db/queries/expenses");
     await deleteExpense(id);
     return { ok: true };
   });
@@ -53,13 +60,8 @@ export const Route = createFileRoute("/expenses/")({
     const categoryIdRaw = searchParams.get("categoryId");
     const categoryId = categoryIdRaw && /^\d+$/.test(categoryIdRaw) ? Number(categoryIdRaw) : undefined;
 
-    const [categories, expenses, summary] = await Promise.all([
-      getCategories(),
-      listExpenses({ month, categoryId }),
-      monthlySummary(month),
-    ]);
-
-    return { categories, expenses, summary, month, categoryId };
+    const data = await loadExpensesPageFn({ data: { month, categoryId } });
+    return { ...data, month, categoryId };
   },
 
   component: ExpensesPage,
@@ -67,6 +69,7 @@ export const Route = createFileRoute("/expenses/")({
 
 function ExpensesPage() {
   const { categories, expenses, summary, month, categoryId } = Route.useLoaderData();
+  const router = useRouter();
   const navigate = Route.useNavigate();
 
   const [busyId, setBusyId] = React.useState<number | null>(null);
@@ -191,6 +194,7 @@ function ExpensesPage() {
                             setBusyId(x.id);
                             try {
                               await deleteExpenseFn({ data: x.id });
+                              await router.invalidate();
                               await navigate({ search: { month, categoryId }, replace: true });
                             } finally {
                               setBusyId(null);
